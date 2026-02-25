@@ -1,0 +1,43 @@
+apiVersion: numaflow.numaproj.io/v1alpha1
+kind: Pipeline
+metadata:
+  name: belt-stream
+  namespace: default
+
+spec:
+  interStepBufferServiceName: default-isb
+
+  vertices:
+
+    - name: kafka-source
+      source:
+        kafka:
+          brokers:
+            - kafka.kafka.svc.cluster.local:9092
+          topic: belt-data
+          consumerGroup: belt-ml-group
+      scale:
+        min: 1
+        max: 1
+
+    - name: ml-runtime
+      udf:
+        container:
+          image: belt-ml-runtime:latest
+          imagePullPolicy: Never
+      scale:
+        min: 1
+        max: 1
+
+    - name: kafka-output
+      sink:
+        kafka:
+          brokers:
+            - kafka.kafka.svc.cluster.local:9092
+          topic: belt-predictions
+
+  edges:
+    - from: kafka-source
+      to: ml-runtime
+    - from: ml-runtime
+      to: kafka-output

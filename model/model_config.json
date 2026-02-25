@@ -1,0 +1,29 @@
+{
+  "model_type": "random_forest",
+  "n_estimators": 300,
+  "max_depth": 20,
+  "random_state": 42,
+  "test_size": 0.2,
+  "features": [
+    "temperature_boot_material/temperature_avg_value",
+    "temperature_boot_material/temperature_warning_flag",
+    "temperature_boot_material/temperature_critical_flag",
+    "ultrasonic_boot/elongation_avg_value",
+    "ultrasonic_boot/elongation_warning_flag",
+    "ultrasonic_boot/elongation_critical_flag",
+    "zero_speed_switch_boot/underspeed_avg_value",
+    "zero_speed_switch_boot/underspeed_critical_flag",
+    "belt_misalignment_boot_left_alarm/BottomLeftAlarmType_avg_value",
+    "belt_misalignment_boot_left_alarm/BottomLeftAlarmType_warning_flag",
+    "belt_misalignment_boot_right_alarm/BottomRightAlarmType_avg_value",
+    "belt_misalignment_boot_right_alarm/BottomRightAlarmType_warning_flag",
+    "fill_level_indicator_boot/FillLevelIndicator_avg_value",
+    "fill_level_indicator_boot/FillLevelIndicator_critical_flag",
+    "belt_misalignment_head_left_alarm/TopLeftAlarmType_avg_value",
+    "belt_misalignment_head_left_alarm/TopLeftAlarmType_warning_flag",
+    "belt_misalignment_head_right_alarm/TopRightAlarmType_avg_value",
+    "belt_misalignment_head_right_alarm/TopRightAlarmType_warning_flag"
+  ],
+  "target": "health_score",
+  "use_rul_target": false
+}

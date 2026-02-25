@@ -1,0 +1,8 @@
+elasticsearch==8.17.0
+pandas
+numpy
+scikit-learn==1.4.0
+joblib
+python-dotenv
+pynumaflow==0.4.1
+kafka-python
