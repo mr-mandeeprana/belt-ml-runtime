@@ -1,60 +1,95 @@
 # Belt ML Runtime
 
-Real-time Remaining Useful Life (RUL) prediction runtime for conveyor belts. This system leverages Kafka for data ingestion, Numaflow for stream processing, and Elasticsearch for storage and observability.
+Real-time Remaining Useful Life (RUL) prediction runtime for conveyor belts. This system leverages Kafka for data ingestion, Numaflow for stream processing, and the ELK stack for observability.
 
-## Architecture
+## 🚀 Quick Links
 
-- **Kafka Source**: Ingests sensor data from edge devices.
-- **Numaflow Pipeline**: Orchestrates the ML inference workload.
-- **ML Runtime (pynumaflow)**: A Python-based User Defined Function (UDF) that performs feature engineering and RUL prediction using scikit-learn models.
-- **Elasticsearch**: Persists predictions and metadata for downstream visualization and analysis.
+- [**Detailed Installation Guide**](./docs/INSTALLATION.md) - How to set up Minikube and tools on a new system.
+- [**System Architecture**](./docs/ARCHITECTURE.md) - Deep dive into components and data flow.
+- [**Pipeline Documentation**](./docs/PIPELINE.md) - Numaflow vertex details and scaling.
 
-## Project Structure
+---
 
-- `app/`: Core application logic and Numaflow UDF entry point.
-- `deploy/`: Infrastructure as Code (IaC) and deployment configurations (Logstash, etc.).
-- `model/`: Pre-trained ML models and configuration files.
-- `scripts/`: Operational scripts for data catchup and troubleshooting.
-- `belt-stream-pipeline.yaml`: Numaflow pipeline specification.
-- `start-all.ps1`: Convenience script to spin up the local stack.
-- `Dockerfile`: Container definition for the ML runtime UDF.
+## 🏗️ Architecture at a Glance
 
-## Getting Started
+The system is designed to run on Kubernetes (Minikube for local dev).
 
-### Prerequisites
+1. **Ingestion**: Sensors push data to **Kafka**.
+2. **Processing**: **Numaflow** pipeline consumes from Kafka and runs the **ML Runtime UDF**.
+3. **Inference**: The Python-based UDF calculates features and predicts RUL.
+4. **Storage**: Predictions are sent back to Kafka, processed by **Logstash**, and stored in **Elasticsearch**.
+5. **Visualization**: **Kibana** provides real-time health dashboards.
 
-- Python 3.9+
-- Docker & Kubernetes (with Numaflow installed)
-- Kafka Cluster
-- Elasticsearch Cluster
+---
 
-### Installation
+## 🛠️ Getting Started (Local Setup)
 
-1. Clone the repository:
+If you already have Minikube and Docker installed, follow these steps to spin up the stack.
 
-   ```bash
-   git clone https://github.com/[username]/belt-ml-runtime.git
-   cd belt-ml-runtime
-   ```
+### 1. Clone the repository
 
-2. Install dependencies:
+```bash
+git clone https://github.com/mr-mandeeprana/belt-ml-runtime.git
+cd belt-ml-runtime
+```
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+### 2. Install Python Dependencies
 
-### Running Locally
+```bash
+pip install -r requirements.txt
+```
 
-Execute the startup script to initialize the stack:
+### 3. Start the Full Stack
+
+Execute the automated startup script:
 
 ```powershell
 .\start-all.ps1
 ```
 
-## Configuration
+*This script will:*
 
-The model behavior and runtime parameters can be tuned via configuration files in the `model/` directory, including thresholds and feature mappings.
+- Start Minikube.
+- Install Numaflow.
+- Build the ML Runtime Docker image.
+- Deploy Kafka, Elasticsearch, Kibana, and the Numaflow Pipeline.
+- Establish port-forwards and open Kibana in your browser.
 
-## License
+---
+
+## 📂 Project Structure
+
+- `app/`: Core Python application logic (Feature engineering, Inference).
+- `deploy/`: Kubernetes manifests (Kafka, ES, Numaflow Pipeline).
+- `docs/`: In-depth documentation for installation, architecture, and pipeline.
+- `model/`: Pre-trained scikit-learn models and configuration.
+- `scripts/`: Operational scripts (e.g., `delta_catchup.py`).
+- `belt-stream-pipeline.yaml`: Numaflow pipeline specification.
+
+---
+
+## 🔧 Operational Commands
+
+### View Logs
+
+```powershell
+# View ML Runtime logs
+kubectl logs -l numaflow.numaproj.io/vertex-name=ml-runtime -c main -f
+```
+
+### Check Stack Status
+
+```powershell
+kubectl get pods -A
+```
+
+### Access Dashboards
+
+- **Kibana**: [http://localhost:5601](http://localhost:5601)
+- **Numaflow UX**: [https://localhost:8443](https://localhost:8443) (default credentials: `admin/admin`)
+
+---
+
+## 📜 License
 
 Internal / Proprietary
