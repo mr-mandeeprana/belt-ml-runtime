@@ -113,7 +113,7 @@ iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocola
 
 # 2. Install required tools
 choco install git -y                  # Git version control
-choco install python --version=3.11.0 -y  # Python 3.11
+choco install python --version=3.12.6 -y  # Python 3.12
 choco install minikube -y             # Local Kubernetes cluster
 choco install kubernetes-cli -y       # kubectl — K8s CLI
 choco install helm -y                 # Helm — K8s package manager
@@ -173,7 +173,7 @@ kubectl apply -f deploy/isb.yaml
 
 ```powershell
 # From the project root
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 ---
@@ -192,7 +192,7 @@ cd belt-ml-runtime
 ### 2. Install Python Dependencies
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 ### 3. Start the Full Stack
