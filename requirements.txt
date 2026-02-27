@@ -4,5 +4,5 @@ numpy
 scikit-learn==1.4.0
 joblib
 python-dotenv
-pynumaflow==0.4.1
+pynumaflow==0.12.1
 kafka-python

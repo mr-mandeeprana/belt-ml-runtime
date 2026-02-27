@@ -46,35 +46,35 @@ class FeatureEngineer:
 
     def derive_flags(self, event: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Compute warning_flag / critical_flag columns from raw sensor values.
-        Matches training logic exactly.
+        Compute warning_flag / critical_flag columns from statistical values.
+        Prioritizes 'avg_value' or 'max_value' if available.
         """
-        for sensor_key, thresholds in self.sensor_warn_crit.items():
-            # Find value in event (exact or containing match)
-            val = None
-            if sensor_key in event:
-                val = event[sensor_key]
-            else:
-                for k, v in event.items():
-                    if sensor_key in k and isinstance(v, (int, float)):
-                        val = float(v)
-                        break
+        for sensor_base, thresholds in self.sensor_warn_crit.items():
+            # Support hierarchical keys and flat statistical input
+            val = event.get("avg_value") if event.get("sensorid") == sensor_base else None
             
+            # Fallback to direct key if it's already mapped
+            if val is None:
+                val = event.get(f"{sensor_base}_avg_value") or event.get(sensor_base)
+
             if val is None:
                 continue
 
+            # Check thresholds (using max_value for critical if available, otherwise avg)
+            check_val = event.get("max_value", val)
+            
             warn = thresholds.get("warning")
             crit = thresholds.get("critical")
 
             if warn is not None:
-                event[f"{sensor_key}_warning_flag"] = int(val == 0 if warn == 0 else val >= warn)
+                event[f"{sensor_base}_warning_flag"] = int(check_val == 0 if warn == 0 else check_val >= warn)
             if crit is not None:
-                event[f"{sensor_key}_critical_flag"] = int(val == 0 if crit == 0 else val >= crit)
+                event[f"{sensor_base}_critical_flag"] = int(check_val == 0 if crit == 0 else check_val >= crit)
 
         # Idle override for underspeed
         zs_flag = "zero_speed_switch_boot/underspeed_critical_flag"
         if event.get(zs_flag) == 1:
-            cur_val = next((v for k, v in event.items() if "current_transducer" in k), None)
+            cur_val = event.get("avg_value") if event.get("sensorid") == "current_transducer" else None
             if cur_val is not None and float(cur_val) < self.max_idle_current:
                 event[zs_flag] = 0
 
@@ -82,25 +82,17 @@ class FeatureEngineer:
 
     def update_rolling(self, event: Dict[str, Any], state_rolling: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Update rolling averages using Exponential Moving Average (EMA).
-        Alpha = 0.1 (fixed per user request).
-        Matches user's hardened production logic.
+        Update rolling state: Prioritizes incoming 'avg_value'.
+        If 'avg_value' is present, we skip the EMA calculation as the source is already aggregated.
         """
-        alpha = 0.1
         event = self.derive_flags(event)
         new_rolling = state_rolling.copy()
 
-        for feature_name in event:
-            if not isinstance(event[feature_name], (int, float)):
-                continue
-
-            # Only roll raw numeric sensor values (not already flags)
-            if not feature_name.endswith("_flag"):
-                avg_key = f"{feature_name}_avg_value"
-
-                prev_val = state_rolling.get(avg_key, event[feature_name])
-                new_rolling[avg_key] = ((1 - alpha) * prev_val) + (alpha * event[feature_name])
-
+        sensor_id = event.get("sensorid")
+        if sensor_id and "avg_value" in event:
+            avg_key = f"{sensor_id}_avg_value"
+            new_rolling[avg_key] = event["avg_value"]
+        
         return new_rolling
 
     def build_vector_dict(self, event: Dict[str, Any], rolling_state: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, float]:

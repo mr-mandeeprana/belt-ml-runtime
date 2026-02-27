@@ -8,23 +8,33 @@ data:
     input {
       kafka {
         bootstrap_servers => "kafka.kafka.svc.cluster.local:9092"
-        topics => ["belt-predictions"]
+        topics => ["belt-predictions", "belt-data"]
         group_id => "logstash-group"
         codec => "json"
         auto_offset_reset => "earliest"
+        decorate_events => true
       }
     }
 
     filter {
-      mutate {
-        add_field => { "pipeline" => "belt-ml-stream" }
+      if [@metadata][kafka][topic] == "belt-predictions" {
+        mutate { add_field => { "pipeline" => "belt-predictions" } }
+      } else if [@metadata][kafka][topic] == "belt-data" {
+        mutate { add_field => { "pipeline" => "belt-raw-archival" } }
       }
     }
 
     output {
-      elasticsearch {
-        hosts => ["http://elasticsearch.elastic.svc.cluster.local:9200"]
-        index => "belt-index"
+      if [pipeline] == "belt-predictions" {
+        elasticsearch {
+          hosts => ["http://elasticsearch.elastic.svc.cluster.local:9200"]
+          index => "belt-index"
+        }
+      } else if [pipeline] == "belt-raw-archival" {
+        elasticsearch {
+          hosts => ["http://elasticsearch.elastic.svc.cluster.local:9200"]
+          index => "belt-raw-data"
+        }
       }
       stdout { codec => rubydebug }
     }

@@ -89,7 +89,7 @@ Write-Host "Starting Port-Forwards..."
 Start-Process powershell -ArgumentList "kubectl port-forward svc/kibana 5601:5601 -n elastic"
 Start-Process powershell -ArgumentList "kubectl port-forward svc/numaflow-server 8443:8443 -n numaflow-system"
 Start-Process powershell -ArgumentList "kubectl port-forward svc/elasticsearch 9200:9200 -n elastic"
-Start-Process powershell -ArgumentList "kubectl port-forward svc/kafka 9092:9092 -n kafka"
+Start-Process powershell -ArgumentList "kubectl port-forward svc/kafka 9092:9093 -n kafka"
 
 Start-Sleep -Seconds 5
 
@@ -100,16 +100,28 @@ Start-Process "http://localhost:5601"
 Start-Process "https://localhost:8443"
 Start-Process "http://localhost:9200/_cat/indices?v"
 
+# --------------------------------------------------
+# 1️⃣1️⃣ Setup Kibana Patterns
+# --------------------------------------------------
+Write-Host "📊 Configuring Kibana index patterns..." -ForegroundColor Yellow
+$env:KIBANA_URL = "http://localhost:5601"
+python scripts/setup_kibana.py
+
 Write-Host "=========================================" -ForegroundColor Green
 Write-Host " 🚀 STREAMING + ELK STACK IS READY 🚀  " -ForegroundColor Green
 Write-Host "=========================================" -ForegroundColor Green
 
-# --------------------------------------------------
-# 11️⃣ Automatic Delta Catch-up
+# 1️⃣2️⃣ Automatic Delta Catch-up
 # --------------------------------------------------
 Write-Host "🔄 Triggering Delta Catch-up Logic..." -ForegroundColor Yellow
 $env:ELASTIC_URL = "http://localhost:9200"
 $env:KAFKA_BOOTSTRAP = "localhost:9092"
 python scripts/delta_catchup.py
+
+# --------------------------------------------------
+# 1️⃣3️⃣ Start IoT Gateway Simulation
+# --------------------------------------------------
+Write-Host "📡 Starting IoT Gateway Simulation (Background)..." -ForegroundColor Green
+Start-Process powershell -ArgumentList "python -m app.iot_gateway --simulate --interval 2"
 
 kubectl get pods -A
