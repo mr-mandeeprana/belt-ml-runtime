@@ -52,12 +52,56 @@ graph LR
 
 ## Scaling Configuration
 
-Currently, the pipeline is configured for a single-node setup (Minikube compatibility):
+| Setting | Local (Minikube) | Production |
+| ------- | ---------------- | ---------- |
+| `kafka-source` min/max | 1 / 10 | 1 / (= Kafka partition count) |
+| `ml-runtime` min/max | 2 / 10 | 2 / (= Kafka partition count) |
+| `ml-runtime` CPU request/limit | 500m / 2 | Tune to p99 latency target |
+| `ml-runtime` Memory request/limit | 1Gi / 4Gi | ≥ 2× RF model size |
 
-- **Min Replicas**: 1
-- **Max Replicas**: 1
+> **Rule of thumb**: set `max` replicas equal to the number of partitions on the `belt-data` Kafka topic.
+> Numaflow auto-scales based on NATS JetStream ISB backpressure.
 
-In production, these values should be adjusted based on the input partition count of the Kafka topics.
+## Production Deployment Checklist
+
+Before deploying to a production cluster:
+
+1. **Image registry** — Push the image to ECR/GCR and update `image:` tags to a pinned semantic version (not `:latest`). Remove `imagePullPolicy: Never`.
+2. **Apply the thresholds ConfigMap first**:
+
+   ```bash
+   kubectl apply -f deploy/thresholds-configmap.yaml
+   ```
+
+3. **Apply the pipeline**:
+
+   ```bash
+   kubectl apply -f deploy/belt-pipeline.yaml
+   ```
+
+## Updating Thresholds Without a Restart
+
+`thresholds.json` is mounted from the `belt-thresholds` ConfigMap at `/config/thresholds.json`.
+The `AlertEngine` hot-reloads this file within **60 seconds** of any change (configurable via `THRESHOLDS_RELOAD_INTERVAL` env var).
+
+```bash
+# Edit the ConfigMap in-place
+kubectl edit configmap belt-thresholds
+
+# OR apply from a modified YAML file
+kubectl apply -f deploy/thresholds-configmap.yaml
+```
+
+No `kubectl rollout restart` is needed.
+
+## Environment Variables
+
+| Variable | Default | Purpose |
+| -------- | ------- | ------- |
+| `ELASTIC_URL` | `http://elasticsearch.elastic.svc.cluster.local:9200` | Elasticsearch endpoint for state store |
+| `STATE_INDEX_NAME` | `belt-runtime-state` | ES index used for per-belt state |
+| `THRESHOLDS_PATH` | `model/thresholds.json` | Override path (set to `/config/thresholds.json` via ConfigMap volume) |
+| `THRESHOLDS_RELOAD_INTERVAL` | `60` | Seconds between mtime checks for hot-reload (0 = disabled) |
 
 ## Troubleshooting the Pipeline
 

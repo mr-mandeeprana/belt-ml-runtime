@@ -46,14 +46,16 @@ class IoTGateway:
         """
         sensor_id = record.get("sensorid")
         if sensor_id not in self.valid_sensors:
+            print(f"[DROPPED] sensorid '{sensor_id}' not in valid_sensors")
             return False
 
         if self.producer:
             try:
-                self.producer.send(self.target_topic, record)
+                future = self.producer.send(self.target_topic, record)
+                future.get(timeout=5)  # surface send errors immediately
                 return True
             except Exception as e:
-                print(f"Error sending to Kafka: {e}")
+                print(f"[ERROR] Failed to send '{sensor_id}' to Kafka topic '{self.target_topic}': {e}")
                 return False
         else:
             print(f"[Dry-Run] Sent: {sensor_id} @ {record.get('@timestamp')}")
@@ -64,6 +66,7 @@ class IoTGateway:
         Simulates a continuous stream of IoT data.
         """
         print(f"Starting simulation for {len(self.valid_sensors)} sensors...")
+        print(f"Sensor IDs: {self.valid_sensors}")
         belt_id = "BELT_001" 
         
         try:
